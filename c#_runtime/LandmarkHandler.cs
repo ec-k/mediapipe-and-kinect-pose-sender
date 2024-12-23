@@ -92,9 +92,9 @@ namespace MpAndKinectPoseSender
         {
             var lm = new Landmark();
              
-            lm.X = joint.Position.X;
-            lm.Y = joint.Position.Y;
-            lm.Z = joint.Position.Z;
+            lm.X = joint.Position.X / 1000;
+            lm.Y = joint.Position.Y / 1000;
+            lm.Z = joint.Position.Z / 1000;
             lm.Confidence = joint.ConfidenceLevel switch
             {
                 JointConfidenceLevel.None => 0f,
