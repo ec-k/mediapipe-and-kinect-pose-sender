@@ -51,7 +51,7 @@ namespace MpAndKinectPoseSender
 
                     // One can access frame data here and extract e.g. tracked bodies from it for the needed purpose.
                     // Instead, for simplicity, we transfer the frame object to the rendering background thread.
-                    // This example shows that frame popped from tracker should be disposed. Since here it is used
+                    // This example shows t hat frame popped from tracker should be disposed. Since here it is used
                     // in a different thread, we use Reference method to prolong the lifetime of the frame object.
                     // For reference on how to read frame data, please take a look at Renderer.NativeWindow_Render().
                     visualizerData.Frame = frame.Reference();
@@ -65,6 +65,7 @@ namespace MpAndKinectPoseSender
                     }
 
                     // Send Landmarks to a pose solver app
+                    if (frame.NumberOfBodies > 0)
                     {
                         var skeleton = frame.GetBodySkeleton(0);
                         landmarkHandler.Update(skeleton);
