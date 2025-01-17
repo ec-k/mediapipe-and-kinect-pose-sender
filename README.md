@@ -9,4 +9,7 @@ Estimate pose by Kinect Body Tracking. Estimate face and hands by MediaPipe.
 2. Run mediapipe_inference/main.py
 3. Run Solver App that uses holistic_landmarks.proto defined in this repo (mediapipe_inference/src/proto/holistic_landmarks.proto)
 
-This app need some file for Memory Mapped Files so you may need to place some file in root of this repo directory and name it "colorImg.dat".
+In first use, you need run c#\_runtime first to create a file to use in Memory Mapped File.
+
+# Installation
+- Place mediapipe models in mediapipe_inference/models
