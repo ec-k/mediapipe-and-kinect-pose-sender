@@ -33,7 +33,10 @@ namespace MpAndKinectPoseSender
 
             var tracker = Tracker.Create(deviceCalibration, new TrackerConfiguration() { ProcessingMode = TrackerProcessingMode.Gpu, SensorOrientation = SensorOrientation.Default });
             using var imgWriter = new ImageWriter();
-            using var landmarkHandler = new LandmarkHandler();
+
+            device.StartImu();
+            var imuSample = device.GetImuSample();
+            using var landmarkHandler = new LandmarkHandler(imuSample, deviceCalibration);
             while (renderer.IsActive)
             {
                 using (Capture sensorCapture = device.GetCapture())

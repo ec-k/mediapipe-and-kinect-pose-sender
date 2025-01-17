@@ -4,6 +4,7 @@ using System.Net.Sockets;
 using HolisticPose;
 using Google.Protobuf;
 using Microsoft.Azure.Kinect.BodyTracking;
+using Microsoft.Azure.Kinect.Sensor;
 
 namespace MpAndKinectPoseSender
 {
@@ -17,12 +18,14 @@ namespace MpAndKinectPoseSender
         string _receiverUri = "127.0.0.1";
         int _receiverPort = 9001;
 
+        TiltCorrector _tiltCorrector;
+
         readonly Action<SocketException> _socketExceptionCallback;
         readonly Action<ObjectDisposedException> _objectDisposedExceptionCallback;
 
         HolisticLandmarks _result;
 
-        public LandmarkHandler()
+        public LandmarkHandler(ImuSample imuSample, Calibration sensorCalibration)
         {
             _sender = new UdpClient();
             var senderEndPoint = new IPEndPoint(IPAddress.Parse(_senderUri), _senderPort);
@@ -32,11 +35,18 @@ namespace MpAndKinectPoseSender
             _result = new HolisticLandmarks();
 
             _receiver.BeginReceive(OnReceived, _receiver);
+
+            _tiltCorrector = new(imuSample, sensorCalibration);
         }
 
         public void Update(Skeleton skeleton)
         {
             PackResults(skeleton);
+        }
+
+        (float, float, float) TransformCoordination(float x, float y, float z)
+        {
+            return (-x, -y, -z);
         }
 
         void OnReceived(IAsyncResult result) 
@@ -47,7 +57,11 @@ namespace MpAndKinectPoseSender
             try
             {
                 var getByte = getUdp.EndReceive(result, ref ipEnd);
-                _result = HolisticLandmarks.Parser.ParseFrom(getByte);
+
+                var receivedBody = HolisticLandmarks.Parser.ParseFrom(getByte);
+                receivedBody.PoseLandmarks = _result.PoseLandmarks;
+
+                _result = receivedBody;
             }
             catch (SocketException e)
             {
@@ -95,6 +109,10 @@ namespace MpAndKinectPoseSender
             lm.X = joint.Position.X / 1000;
             lm.Y = joint.Position.Y / 1000;
             lm.Z = joint.Position.Z / 1000;
+
+            (lm.X, lm.Y, lm.Z) = _tiltCorrector.CorrectLandmarkPosition(lm.X, lm.Y, lm.Z);
+            (lm.X, lm.Y, lm.Z) = TransformCoordination(lm.X, lm.Y, lm.Z);
+
             lm.Confidence = joint.ConfidenceLevel switch
             {
                 JointConfidenceLevel.None => 0f,
