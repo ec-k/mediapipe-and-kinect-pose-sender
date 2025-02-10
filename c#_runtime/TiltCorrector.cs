@@ -8,11 +8,21 @@ namespace MpAndKinectPoseSender
     internal class TiltCorrector
     {
 
+        ImuSample _imuSample;
+        Calibration _sensorCalibration;
         Quaternion _inversedCameraTiltRotation;
 
         internal TiltCorrector(ImuSample imuSample, Calibration sensorCalibration)
         {
+            _imuSample = imuSample;
+            _sensorCalibration = sensorCalibration;
             _inversedCameraTiltRotation = CalculateTiltRotation(imuSample, sensorCalibration);
+        }
+
+        internal void UpdateTiltRotation()
+        {
+            CalculateTiltRotation(_imuSample, _sensorCalibration);
+            Console.WriteLine("Calibrated");
         }
 
         Vector3 GetGravityVector(ImuSample imuSample)
@@ -60,11 +70,11 @@ namespace MpAndKinectPoseSender
             return calibraiton.DeviceExtrinsics[index];
         }
 
-        internal static Vector3 Transform(this Vector3 v, float[] matrix4x4)
+        internal static Vector3 Transform(this Vector3 v, float[] rotationMatrix)
         {
-            var Rx = new Vector3(matrix4x4[0], matrix4x4[1], matrix4x4[2]);
-            var Ry = new Vector3(matrix4x4[3], matrix4x4[4], matrix4x4[5]);
-            var Rz = new Vector3(matrix4x4[6], matrix4x4[7], matrix4x4[8]);
+            var Rx = new Vector3(rotationMatrix[0], rotationMatrix[1], rotationMatrix[2]);
+            var Ry = new Vector3(rotationMatrix[3], rotationMatrix[4], rotationMatrix[5]);
+            var Rz = new Vector3(rotationMatrix[6], rotationMatrix[7], rotationMatrix[8]);
 
             return new Vector3(Vector3.Dot(v, Rx), Vector3.Dot(v, Ry), Vector3.Dot(v, Rz));
         }

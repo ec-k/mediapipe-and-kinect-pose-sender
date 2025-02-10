@@ -39,6 +39,8 @@ namespace MpAndKinectPoseSender
             _tiltCorrector = new(imuSample, sensorCalibration);
         }
 
+        internal void UpdateTiltRotation() => _tiltCorrector.UpdateTiltRotation();
+
         public void Update(Skeleton skeleton)
         {
             PackResults(skeleton);

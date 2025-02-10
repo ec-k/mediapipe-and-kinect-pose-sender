@@ -37,14 +37,29 @@ namespace MpAndKinectPoseSender
             device.StartImu();
             var imuSample = device.GetImuSample();
             using var landmarkHandler = new LandmarkHandler(imuSample, deviceCalibration);
+
+            var userInputChar = "-";
             while (renderer.IsActive)
             {
                 using (Capture sensorCapture = device.GetCapture())
                 {
-                    // Queue latest frame from the sensor.
-                    tracker.EnqueueCapture(sensorCapture);
+                    try
+                    {
+                        // Queue latest frame from the sensor.
+                        tracker.EnqueueCapture(sensorCapture);
+                    }
+                    catch
+                    {
+                        continue;
+                    }
                 }
 
+                if (Console.KeyAvailable)
+                {
+                    userInputChar = Console.ReadKey().Key.ToString();
+                    if (userInputChar == "C")
+                        landmarkHandler.UpdateTiltRotation();
+                }
 
                 // Try getting latest tracker frame.
                 using Frame frame = tracker.PopResult(TimeSpan.Zero, throwOnTimeout: false);
@@ -61,10 +76,17 @@ namespace MpAndKinectPoseSender
 
 
                     // Write color image to thw Memory Mapped File
+                    try{
+                        var colorImg = frame.Capture.Color;
+                        if (colorImg != null)
+                        {
+                            var bgraArr = colorImg.GetPixels<BGRA>().ToArray();
+                            imgWriter.Write(bgraArr);
+                        }
+                    }
+                    catch
                     {
-                    var colorImg = frame.Capture.Color;
-                    var bgraArr = colorImg.GetPixels<BGRA>().ToArray();
-                    imgWriter.Write(bgraArr);
+                        continue;
                     }
 
                     // Send Landmarks to a pose solver app
