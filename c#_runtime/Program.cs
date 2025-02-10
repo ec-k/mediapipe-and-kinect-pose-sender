@@ -59,6 +59,8 @@ namespace MpAndKinectPoseSender
                     userInputChar = Console.ReadKey().Key.ToString();
                     if (userInputChar == "C")
                         landmarkHandler.UpdateTiltRotation();
+                    if (userInputChar == "R")
+                        landmarkHandler.ResetTiltRotation();
                 }
 
                 // Try getting latest tracker frame.

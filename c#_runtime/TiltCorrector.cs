@@ -21,8 +21,14 @@ namespace MpAndKinectPoseSender
 
         internal void UpdateTiltRotation()
         {
-            CalculateTiltRotation(_imuSample, _sensorCalibration);
+            _inversedCameraTiltRotation = CalculateTiltRotation(_imuSample, _sensorCalibration);
             Console.WriteLine("Calibrated");
+        }
+
+        internal void ResetTiltRotation()
+        {
+            _inversedCameraTiltRotation = Quaternion.Identity;
+            Console.WriteLine("Reset");
         }
 
         Vector3 GetGravityVector(ImuSample imuSample)

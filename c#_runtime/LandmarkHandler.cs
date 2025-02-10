@@ -40,6 +40,7 @@ namespace MpAndKinectPoseSender
         }
 
         internal void UpdateTiltRotation() => _tiltCorrector.UpdateTiltRotation();
+        internal void ResetTiltRotation() => _tiltCorrector.ResetTiltRotation();
 
         public void Update(Skeleton skeleton)
         {
