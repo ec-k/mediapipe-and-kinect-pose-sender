@@ -1,14 +1,20 @@
 import mediapipe as mp
 from mediapipe.tasks import python as mp_tasks
-
+from pathlib import Path
+from result_data import HolisticLandmarks
 import cv2
 import time
 
+
+# NOTE: *Detector class should be written with Property (or some kind of appropriate) pattern.
+
+root_directory = str(Path(__file__).parent.parent)
+
 class HolisticDetector:
-    def __init__(self):
-        self.__pose = PoseDetector("./models/pose_landmarker_full.task")
-        self.__hand = HandDetector("./models/hand_landmarker.task")
-        self.__face = FaceDetector("./models/face_landmarker.task")
+    def __init__(self, filter_length):
+        self.__pose = PoseDetector(root_directory + "/models/pose_landmarker_full.task", filter_length)
+        self.__hand = HandDetector(root_directory + "/models/hand_landmarker.task", filter_length)
+        self.__face = FaceDetector(root_directory + "/models/face_landmarker.task")
 
         self.latest_time_ms = 0
 
@@ -25,32 +31,25 @@ class HolisticDetector:
 
         self.latest_time_ms = t_ms
 
+    @property
     def results(self):
         return HolisticLandmarks(
-            self.__pose.results(),
-            self.__hand.results(),
-            self.__face.results()
+            self.__pose.results,
+            self.__hand.results,
+            self.__face.results
         )
 
-class HolisticLandmarks:
-    def __init__(self, pose_landmarks, hand_landmarks, face_results):
-        self.pose_landmarks = pose_landmarks
-        self.hand_landmarks = hand_landmarks
-        self.face_results = face_results
-
-
-
 class PoseDetector:
-    def __init__(self, model_path):
+    def __init__(self, model_path, filter_length):
         options = mp_tasks.vision.PoseLandmarkerOptions(
             base_options = mp_tasks.BaseOptions(model_asset_buffer = open(model_path, "rb").read()),
             running_mode = mp_tasks.vision.RunningMode.LIVE_STREAM,
             result_callback = self.__save_results
             )
-
         self.landmarker = mp_tasks.vision.PoseLandmarker.create_from_options(options)
         self.__results = None
 
+    @property
     def results(self):
         return self.__results
 
@@ -62,7 +61,7 @@ class PoseDetector:
 
 
 class HandDetector:
-    def __init__(self, model_path):
+    def __init__(self, model_path, filter_length):
         options = mp_tasks.vision.HandLandmarkerOptions(
             base_options = mp_tasks.BaseOptions(model_asset_buffer = open(model_path, "rb").read()),
             num_hands = 2,
@@ -72,6 +71,7 @@ class HandDetector:
         self.landmarker = mp_tasks.vision.HandLandmarker.create_from_options(options)
         self.__results = None
 
+    @property
     def results(self):
         return self.__results
 
@@ -95,6 +95,7 @@ class FaceDetector:
         self.landmarker = mp_tasks.vision.FaceLandmarker.create_from_options(options)
         self.__results = None
 
+    @property
     def results(self):
         return self.__results
 

@@ -1,17 +1,4 @@
-import udp_client
 from proto import holistic_landmarks_pb2 as holistic_lm_pb2
-
-class HolisticPoseSender:
-    def __init__(self, address=None, port=None):
-        self.client = udp_client.UdpClient(address, port)
-
-    def connect(self):
-        self.client.connect()
-
-    def send_holistic_landmarks(self, holistic_results):
-        holistic_lm = pack_holistic_landmarks_result(holistic_results)
-        msg = holistic_lm.SerializeToString()
-        return self.client.send_protobuf_message(msg)
 
 def pack_holistic_landmarks_result(holistic_results):
     holistic_lm = holistic_lm_pb2.HolisticLandmarks()
