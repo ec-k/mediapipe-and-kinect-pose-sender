@@ -1,0 +1,6 @@
+[submodule "SkeletonProto"]
+	path = SkeletonProto
+	url = https://github.com/ec-k/SkeletonProto.git
+[submodule "proto"]
+	path = proto
+	url = https://github.com/ec-k/SkeletonProto.git
