@@ -1,4 +1,4 @@
-from proto import holistic_landmarks_pb2 as holistic_lm_pb2
+import holistic_landmarks_pb2 as holistic_lm_pb2
 
 def pack_holistic_landmarks_result(holistic_results):
     holistic_lm = holistic_lm_pb2.HolisticLandmarks()

@@ -1,5 +1,5 @@
 import network.udp_client as udp_client
-from proto.holistic_landmarks_pb2 import HolisticLandmarks
+from holistic_landmarks_pb2 import HolisticLandmarks
 
 class HolisticPoseSender:
     def __init__(self, address=None, port=None):
