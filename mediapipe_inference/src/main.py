@@ -1,78 +1,109 @@
 from network.holistic_pose_sender import HolisticPoseSender
+from network.udp_client import UdpServer
 from holistic_detector import HolisticDetector
 import packer
 import visualizer
-
 import cv2
 import mediapipe as mp
 import numpy as np
-
-from pathlib import Path
-from filters.moving_average_filter import MovingAverage, no_process
 import time
-import copy
+from pathlib import Path
+from holistic_landmarks_pb2 import HolisticLandmarks
+from multiprocessing import Process, Queue
 
-def main_loop(landmark_filter):
-  # Break in key Ctrl+C pressed
-  if cv2.waitKey(5) & 0xFF == 27:
-    return False
+class SharedData:
+    def __init__(self):
+        self.latest_landmarks = None
+        self.latest_rgb_image = None
 
-  image = cv2.cvtColor(np_mmap, cv2.COLOR_BGRA2RGB)
-  holistic_detector.inference(image)
+# Define common constants
+FRAME_INTERVAL = 1/60  # 60 FPS
 
-  # Filtering
-  results = copy.deepcopy(holistic_detector.results)
-  landmark_filter['pose'].update(results.pose_landmarks)
-  landmark_filter['hand'].update(results.hand_landmarks)
-  results.pose_landmarks = landmark_filter['pose'].result
-  results.hand_landmarks = landmark_filter['hand'].result
+def main_loop(shared_data):
+    # Convert once and share
+    rgb_image = cv2.cvtColor(np_mmap, cv2.COLOR_BGRA2RGB)
+    shared_data.latest_rgb_image = rgb_image
+    
+    holistic_detector.inference(rgb_image)
 
-  # Send results to solver app
-  packed_results = packer.pack_holistic_landmarks_result(results)
-  pose_sender.send_holistic_landmarks(packed_results)
+    # Filtering (Note: use copy.deepcopy when filtering results)
+    results = holistic_detector.results
 
-  # Visualize resulted landmarks
-  annotated_image = image
-  if results.pose_landmarks is not None:
-    annotated_image = visualizer.draw_pose_landmarks_on_image(annotated_image, results.pose_landmarks)
-  if results.hand_landmarks is not None:
-    annotated_image = visualizer.draw_hand_landmarks_on_image(annotated_image, results.hand_landmarks)
-  if results.face_results is not None:
-    annotated_image = visualizer.draw_face_landmarks_on_image(annotated_image, results.face_results)
-  cv2.imshow('MediaPipe Landmarks', cv2.flip(cv2.cvtColor(annotated_image, cv2.COLOR_RGB2BGR), 1))
-  return True
+    # Send results to solver app
+    packed_results = packer.pack_holistic_landmarks_result(results)
+    pose_sender.send_holistic_landmarks(packed_results)
+
+    return True
+
+def server_loop(shared_data):
+    print("Starting server loop...")
+    filtered_result_receiver = UdpServer("localhost", 9002)
+    filtered_result_receiver.bind()
+    
+    def handle_received_data(raw_results):
+        results = HolisticLandmarks()
+        results.ParseFromString(raw_results)
+        shared_data.latest_landmarks = results
+        print("Received new landmarks")
+    
+    while True:
+        filtered_result_receiver.receive(handle_received_data)
+        time.sleep(FRAME_INTERVAL) 
+
+def visualize_result(shared_data):
+    while True:
+        if shared_data.latest_landmarks is None:
+            time.sleep(FRAME_INTERVAL)
+            continue
+
+        # Skip frames if processing is too slow
+        if time.time() - last_process_time < FRAME_INTERVAL:
+            continue
+
+        # Process frame
+        last_process_time = time.time()
+        annotated_image = np.array(shared_data.latest_rgb_image, copy=True)
+        
+        results = shared_data.latest_landmarks
+        if results is not None:
+            annotated_image = visualizer.draw_all_landmarks(annotated_image, results)
+
+        cv2.imshow('External Landmarks', cv2.flip(cv2.cvtColor(annotated_image, cv2.COLOR_RGB2BGR), 1))
+        
+        if cv2.waitKey(1) & 0xFF == 27:
+            break
 
 if __name__ == "__main__":
-  mp_drawing = mp.solutions.drawing_utils
-  mp_drawing_styles = mp.solutions.drawing_styles
+    mp_drawing = mp.solutions.drawing_utils
+    mp_drawing_styles = mp.solutions.drawing_styles
 
-  pose_sender = HolisticPoseSender("localhost", 9001)
-  pose_sender.connect()
+    pose_sender = HolisticPoseSender("localhost", 9001)
+    pose_sender.connect()
 
-  holistic_detector = HolisticDetector(5)
+    holistic_detector = HolisticDetector(5)
 
-  width = 1280
-  height = 720
+    width = 1280
+    height = 720
 
-  project_root_directory = str(Path(__file__).parent.parent.parent)
-  filepath = project_root_directory + "/colorImg.dat"
+    project_root_directory = str(Path(__file__).parent.parent.parent)
+    filepath = project_root_directory + "/colorImg.dat"
 
-  np_mmap = np.memmap(
-      filepath,
-      dtype='uint8',
-      mode='r',
-      shape=(height, width, 4),
-  )
+    np_mmap = np.memmap(
+        filepath,
+        dtype='uint8',
+        mode='r',
+        shape=(height, width, 4),
+    )
 
+    shared_data = SharedData()
+    
+    # Use Process instead of Thread for CPU-intensive tasks
+    Process(target=server_loop, args=(shared_data,)).start()
+    Process(target=visualize_result, args=(shared_data,)).start()
 
-  filter = {
-    'pose': MovingAverage(1, no_process),
-    'hand': MovingAverage(1, no_process)
-  }
+    doLoop = True
+    while doLoop:
+        doLoop = main_loop(shared_data)
+        time.sleep(FRAME_INTERVAL)  # Use common interval
 
-  doLoop = True
-  while doLoop:
-    doLoop = main_loop(filter)
-    time.sleep(1/60)
-
-  cv2.destroyAllWindows()
+    cv2.destroyAllWindows()
