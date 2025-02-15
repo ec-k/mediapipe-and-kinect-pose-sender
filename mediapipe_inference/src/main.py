@@ -8,11 +8,9 @@ import mediapipe as mp
 import numpy as np
 
 from pathlib import Path
-from filters.moving_average_filter import MovingAverage, no_process
 import time
-import copy
 
-def main_loop(landmark_filter):
+def main_loop():
   # Break in key Ctrl+C pressed
   if cv2.waitKey(5) & 0xFF == 27:
     return False
@@ -20,12 +18,8 @@ def main_loop(landmark_filter):
   image = cv2.cvtColor(np_mmap, cv2.COLOR_BGRA2RGB)
   holistic_detector.inference(image)
 
-  # Filtering
-  results = copy.deepcopy(holistic_detector.results)
-  landmark_filter['pose'].update(results.pose_landmarks)
-  landmark_filter['hand'].update(results.hand_landmarks)
-  results.pose_landmarks = landmark_filter['pose'].result
-  results.hand_landmarks = landmark_filter['hand'].result
+  # Filtering (Note: use copy.deepcopy if you need to filter results)
+  results = holistic_detector.results
 
   # Send results to solver app
   packed_results = packer.pack_holistic_landmarks_result(results)
@@ -64,15 +58,9 @@ if __name__ == "__main__":
       shape=(height, width, 4),
   )
 
-
-  filter = {
-    'pose': MovingAverage(1, no_process),
-    'hand': MovingAverage(1, no_process)
-  }
-
   doLoop = True
   while doLoop:
-    doLoop = main_loop(filter)
+    doLoop = main_loop()
     time.sleep(1/60)
 
   cv2.destroyAllWindows()

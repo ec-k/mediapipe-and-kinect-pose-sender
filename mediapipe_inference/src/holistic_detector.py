@@ -6,14 +6,12 @@ import cv2
 import time
 
 
-# NOTE: *Detector class should be written with Property (or some kind of appropriate) pattern.
-
 root_directory = str(Path(__file__).parent.parent)
 
 class HolisticDetector:
-    def __init__(self, filter_length):
-        self.__pose = PoseDetector(root_directory + "/models/pose_landmarker_full.task", filter_length)
-        self.__hand = HandDetector(root_directory + "/models/hand_landmarker.task", filter_length)
+    def __init__(self):
+        self.__pose = PoseDetector(root_directory + "/models/pose_landmarker_full.task")
+        self.__hand = HandDetector(root_directory + "/models/hand_landmarker.task")
         self.__face = FaceDetector(root_directory + "/models/face_landmarker.task")
 
         self.latest_time_ms = 0
@@ -40,7 +38,7 @@ class HolisticDetector:
         )
 
 class PoseDetector:
-    def __init__(self, model_path, filter_length):
+    def __init__(self, model_path):
         options = mp_tasks.vision.PoseLandmarkerOptions(
             base_options = mp_tasks.BaseOptions(model_asset_buffer = open(model_path, "rb").read()),
             running_mode = mp_tasks.vision.RunningMode.LIVE_STREAM,
@@ -61,7 +59,7 @@ class PoseDetector:
 
 
 class HandDetector:
-    def __init__(self, model_path, filter_length):
+    def __init__(self, model_path):
         options = mp_tasks.vision.HandLandmarkerOptions(
             base_options = mp_tasks.BaseOptions(model_asset_buffer = open(model_path, "rb").read()),
             num_hands = 2,
