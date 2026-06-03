@@ -1,4 +1,4 @@
-﻿using KinectPoseInferencer.Core.InputHook;
+using KinectPoseInferencer.Core.InputHook;
 using R3;
 
 
@@ -10,6 +10,10 @@ public class InputLogPresenter : IDisposable
     readonly RecordDataBroker _recordDataBroker;
 
     DisposableBag _disposables = new();
+
+    // Throttling for mouse events (~60fps)
+    readonly TimeSpan _mouseThrottleInterval = TimeSpan.FromMilliseconds(16);
+    readonly Subject<MouseEventData> _mouseEventSubject = new();
 
     public InputLogPresenter(
         InputEventSender sender,
@@ -24,6 +28,12 @@ public class InputLogPresenter : IDisposable
             {
                 _sender?.SendMessage(inputEvent);
             })
+            .AddTo(ref _disposables);
+
+        // Throttle mouse events to ~60fps
+        _mouseEventSubject
+            .ThrottleLast(_mouseThrottleInterval)
+            .Subscribe(SendMouseEvent)
             .AddTo(ref _disposables);
 
         GlobalInputHook.OnKeyboardEvent += KeyboardInputEventCallback;
@@ -43,6 +53,11 @@ public class InputLogPresenter : IDisposable
 
     void MouseInputEventCallback(MouseEventData mouseInputEvent)
     {
+        _mouseEventSubject.OnNext(mouseInputEvent);
+    }
+
+    void SendMouseEvent(MouseEventData mouseInputEvent)
+    {
         var deviceInputData = new DeviceInputData
         {
             Timestamp = TimeSpan.FromTicks(mouseInputEvent.RawStopwatchTimestamp),
@@ -56,5 +71,8 @@ public class InputLogPresenter : IDisposable
     {
         GlobalInputHook.OnKeyboardEvent -= KeyboardInputEventCallback;
         GlobalInputHook.OnMouseEvent -= MouseInputEventCallback;
+
+        _mouseEventSubject.Dispose();
+        _disposables.Dispose();
     }
 }
