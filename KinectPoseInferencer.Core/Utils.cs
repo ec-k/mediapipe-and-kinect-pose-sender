@@ -33,15 +33,15 @@ internal static class Utils
                 Math.Abs(from.X) > Math.Abs(from.Y) ?
                 Vector3.UnitY : Vector3.UnitX;
 
-            var axis = Vector3.Cross(from, orthogonalAxis);
+            var axis = Vector3.Normalize(Vector3.Cross(from, orthogonalAxis));
             if (axis.LengthSquared() < 0.000001f)
-                axis = Vector3.Cross(from, Vector3.UnitZ);
+                axis = Vector3.Normalize(Vector3.Cross(from, Vector3.UnitZ));
             return System.Numerics.Quaternion.CreateFromAxisAngle(axis, MathF.PI); // 180 degrees rotation
         }
 
         // Otherwise, calculate the rotation axis and angle
         {
-            var axis = Vector3.Cross(from, to);
+            var axis = Vector3.Normalize(Vector3.Cross(from, to));
             var radAngle = MathF.Acos(dot);
             return System.Numerics.Quaternion.CreateFromAxisAngle(axis, radAngle);
         }
