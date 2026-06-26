@@ -27,7 +27,7 @@ public class PlaybackController : IPlaybackController
     LogMetadata? _metadata;
     TimeSpan _firstFrameKinectTime = TimeSpan.Zero;
     TimeSpan _firstFrameSystemTime = TimeSpan.Zero;
-    TimeSpan _kinectToSystemTimestampOffset = TimeSpan.Zero;
+    TimeSpan _kinectToSystemTimestampOffset = TimeSpan.Zero; // Keeps input events in sync even when playing a clipped video whose first frame differs from metadata
 
     public int TargetFps { get; private set; }
     LogicLooper? _readingLoop;
@@ -114,6 +114,9 @@ public class PlaybackController : IPlaybackController
 
             if (_metadata is not null)
             {
+                // Compute the fixed offset between Kinect device clock and system clock at recording time.
+                // This offset is applied when playing back a clipped video whose first frame timestamp
+                // differs from metadata.FirstFrameKinectDeviceTime, so that input events remain in sync.
                 _kinectToSystemTimestampOffset = _metadata.FirstFrameSystemTime - _metadata.FirstFrameKinectDeviceTime;
                 return true;
             }
