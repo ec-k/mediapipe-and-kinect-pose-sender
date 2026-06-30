@@ -21,6 +21,7 @@ public class RemoteControlServer : IDisposable
 
     public RemoteControlServer(
         int port,
+        bool allowRemoteAccess,
         IPlaybackController playbackController,
         LandmarkPresenter landmarkPresenter,
         ILogger<RemoteControlServer> logger
@@ -31,8 +32,9 @@ public class RemoteControlServer : IDisposable
         _landmarkPresenter = landmarkPresenter ?? throw new ArgumentNullException(nameof(landmarkPresenter));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
+        var host = allowRemoteAccess ? "+" : "localhost";
         _listener = new();
-        _listener.Prefixes.Add($"http://+:{_port}/control/");
+        _listener.Prefixes.Add($"http://{host}:{_port}/control/");
     }
 
     public async Task StartAsync(CancellationToken ct = default)
