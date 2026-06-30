@@ -32,9 +32,16 @@ public class RemoteControlServer : IDisposable
         _landmarkPresenter = landmarkPresenter ?? throw new ArgumentNullException(nameof(landmarkPresenter));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
-        var host = allowRemoteAccess ? "+" : "localhost";
         _listener = new();
-        _listener.Prefixes.Add($"http://{host}:{_port}/control/");
+        if (allowRemoteAccess)
+        {
+            _listener.Prefixes.Add($"http://+:{_port}/control/");
+        }
+        else
+        {
+            _listener.Prefixes.Add($"http://localhost:{_port}/control/");
+            _listener.Prefixes.Add($"http://127.0.0.1:{_port}/control/");
+        }
     }
 
     public async Task StartAsync(CancellationToken ct = default)
