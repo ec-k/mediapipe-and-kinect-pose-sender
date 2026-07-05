@@ -33,6 +33,12 @@ public class KinectInferencer : IDisposable
 
     Tracker? _tracker;
 
+    // First frame's raw device timestamp (seconds), used as an offset so that downstream
+    // float timestamps stay small. Some native SDKs (e.g. Orbbec Femto Bolt wrapper) return
+    // an absolute Unix-epoch-scale DeviceTimestamp instead of device-uptime; casting that
+    // directly to float loses enough precision to make per-frame dt collapse to zero.
+    double? _firstTimestampSeconds;
+
     public KinectInferencer(IOptions<KinectTrackerSettings> settings)
     {
         _settings = settings.Value;
@@ -86,6 +92,7 @@ public class KinectInferencer : IDisposable
         };
         _tracker = new Tracker(calibration, trackerConfig);
         _needsInitialization = false;
+        _firstTimestampSeconds = null;
 
         _initializationTcs?.TrySetResult();
     }
@@ -168,7 +175,10 @@ public class KinectInferencer : IDisposable
     {
         if (frame.BodyCount > 0)
         {
-            var timestamp = (float)frame.DeviceTimestamp.TotalSeconds;
+            var rawSeconds = frame.DeviceTimestamp.TotalSeconds;
+            _firstTimestampSeconds ??= rawSeconds;
+            var timestamp = (float)(rawSeconds - _firstTimestampSeconds.Value);
+
             var bodies = new SkeletonData[frame.BodyCount];
 
             for (int i = 0; i < frame.BodyCount; i++)
